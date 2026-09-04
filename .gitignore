@@ -1,0 +1,38 @@
+# --- Node.js / Next.js (frontend) ---
+node_modules/
+.next/
+out/
+npm-debug.log*
+.pnpm-debug.log*
+
+# --- Kotlin / Gradle (backend) ---
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+*.class
+*.log
+
+# --- Terraform (infra) ---
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+# tfvarsに認証情報や機密値を書く運用にするため除外する
+*.tfvars
+!*.tfvars.example
+
+# --- 環境変数（秘密情報を含むため必ず除外） ---
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# --- IDE / エディタ設定 ---
+.idea/
+*.iml
+.vscode/
+!.vscode/extensions.json
+
+# --- OS ---
+.DS_Store
+Thumbs.db
