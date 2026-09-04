@@ -31,20 +31,35 @@ Kotlin + Spring Boot + Next.js + AWS で構築する、学習用のフルスタ�
 
 ```
 todo-fullstack/
-├── backend/   # Spring Boot アプリケーション（API）
-├── frontend/  # Next.js アプリケーション（画面）
-├── infra/     # Terraform コード（AWSインフラ定義）
-└── docker-compose.yml  # ローカル開発環境の起動定義
+├── backend/         # Spring Boot アプリケーション（API）
+├── frontend/        # Next.js アプリケーション（画面）
+├── infra/           # Terraform コード（AWSインフラ定義）
+├── compose.yml      # ローカル開発環境の起動定義
+└── .env.example     # ローカル用環境変数のテンプレート
 ```
 
-## セットアップ（準備中）
+## セットアップ
 
-現時点ではまだ各アプリケーションの雛形を作成中です。将来的には以下のコマンドだけで
-ローカル環境（backend / frontend / PostgreSQL）が一括起動できるようにする予定です。
+現時点ではPostgreSQLコンテナのみ起動できます。backend / frontendの雛形ができ次第、
+このセクションを更新していきます。
 
 ```bash
-docker compose up
+git clone git@github.com-tseno:tseno/todo-fullstack.git
+cd todo-fullstack
+cp .env.example .env
+docker compose up -d
 ```
+
+`.env.example`にはダミー値が入っています。ローカル開発用のPostgreSQLなので、
+値を変更せずそのまま使っても問題ありません。
+
+### 動作確認
+
+```bash
+docker exec -it postgres16 psql -U todo -d todo
+```
+
+上記でpsqlのプロンプトに入れれば起動成功です（`\q`または`exit`で抜けられます）。
 
 ## 学習の進め方
 
