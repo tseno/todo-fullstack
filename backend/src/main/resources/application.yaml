@@ -1,3 +1,11 @@
 spring:
   application:
     name: todo-backend
+  datasource:
+    url: jdbc:postgresql://localhost:5432/${POSTGRES_DB:todo}
+    username: ${POSTGRES_USER:todo}
+    password: ${POSTGRES_PASSWORD:todo}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
