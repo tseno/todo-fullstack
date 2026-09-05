@@ -1,14 +1,7 @@
 import TodoForm from "./todo-form";
 import DeleteButton from "./delete-button";
-
-interface Todo {
-  id: number;
-  title: string;
-  description: string | null;
-  dueDate: string | null;
-  priority: string;
-  completed: boolean;
-}
+import UpdateForm from "./update-form";
+import { Todo } from "./todo";
 
 async function getTodos(): Promise<Todo[]> {
   const res = await fetch("http://localhost:8080/api/todos", {
@@ -25,8 +18,11 @@ export default async function Home() {
       <TodoForm />
     <ul>
       {todos.map((todo) => (
-        <li key={todo.id}>{todo.title}
-          <DeleteButton id={todo.id} />
+        <li key={todo.id}>
+          <div>
+            <UpdateForm todo={todo} />
+            <DeleteButton id={todo.id} />
+          </div>
         </li>
       ))}
     </ul>

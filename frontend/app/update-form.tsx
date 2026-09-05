@@ -2,23 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Todo } from "./todo";
 
-export default function TodoForm() {
-    const [title, setTitle] = useState("");
+export default function UpdateForm({ todo }: { todo: Todo }) {
+    const [title, setTitle] = useState(todo.title);
     const router = useRouter();
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
 
-        await fetch("http://localhost:8080/api/todos", {
-            method: "POST",
+        await fetch(`http://localhost:8080/api/todos/${todo.id}`, {
+            method: "PUT",
             headers: {
                 "Content-Type": "application/json",
             },
-            body: JSON.stringify({ title, priority: "MEDIUM"}),
+            body: JSON.stringify({ ...todo, title}),
         });
 
-        setTitle("");
         router.refresh();
     }
 
@@ -31,7 +31,7 @@ export default function TodoForm() {
                     onChange={(e) => setTitle(e.target.value)}
                     placeholder="やることを入力"
                 />
-            <button type="submit">追加</button>
+            <button type="submit">更新</button>
             </div>
         </form>
     );
