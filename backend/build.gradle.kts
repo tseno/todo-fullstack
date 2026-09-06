@@ -41,3 +41,8 @@ kotlin {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+	// IPv6優先ネットワーク環境だと、CognitoのJWKS取得がIPv6経路の失敗でこけることがあるためIPv4を強制する
+	jvmArgs("-Djava.net.preferIPv4Stack=true")
+}
