@@ -1,12 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Todo } from "./todo";
 
-export default function UpdateForm({ todo }: { todo: Todo }) {
+export default function UpdateForm({ todo, onTodoChanged }: { todo: Todo; onTodoChanged: () => void }) {
     const [title, setTitle] = useState(todo.title);
-    const router = useRouter();
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -15,11 +13,11 @@ export default function UpdateForm({ todo }: { todo: Todo }) {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
             },
             body: JSON.stringify({ ...todo, title}),
         });
-
-        router.refresh();
+        onTodoChanged();
     }
 
     return (

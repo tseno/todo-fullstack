@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function TodoForm() {
+export default function TodoForm({ onTodoChanged }: { onTodoChanged: () => void }) {
     const [title, setTitle] = useState("");
-    const router = useRouter();
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -14,12 +12,13 @@ export default function TodoForm() {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("access_token")}`
             },
             body: JSON.stringify({ title, priority: "MEDIUM"}),
         });
 
         setTitle("");
-        router.refresh();
+        onTodoChanged();
     }
 
     return (

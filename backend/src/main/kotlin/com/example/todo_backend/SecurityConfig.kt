@@ -2,6 +2,7 @@ package com.example.todo_backend
 
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity
 import org.springframework.security.config.annotation.web.invoke
@@ -14,6 +15,7 @@ class SecurityConfig {
     fun filterChain(http: HttpSecurity): SecurityFilterChain {
         http {
             authorizeHttpRequests {
+                authorize(HttpMethod.OPTIONS, "/**", permitAll)
                 authorize(anyRequest, authenticated)
             }
             oauth2ResourceServer { jwt { } }
