@@ -1,68 +1,125 @@
-"use client"
+"use client";
 
 import TodoForm from "./todo-form";
 import DeleteButton from "./delete-button";
 import UpdateForm from "./update-form";
 import LoginButton from "./login-button";
-import { useEffect, useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import LogoutButton from "./logout-button";
 import { Todo } from "./todo";
+import { exchangeCodeForToken } from "../lib/cognito";
+import { fetchTodos as apiFetchTodos, updateTodo } from "../lib/api";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
-export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([]);
-  const router = useRouter();
+export default function Page() {
+    // 静的エクスポートでは useSearchParams を使うコンポーネントをSuspenseで包む必要がある
+    return (
+        <Suspense fallback={<main className="p-6">読み込み中...</main>}>
+            <Home />
+        </Suspense>
+    );
+}
 
-  const searchParams = useSearchParams();
-  const code = searchParams.get("code");
+function Home() {
+    const [todos, setTodos] = useState<Todo[]>([]);
+    const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+    const router = useRouter();
 
-  async function fetchTodos() {
-    const res = await fetch("http://localhost:8080/api/todos", {
-      headers: {
-        "Authorization": `Bearer ${localStorage.getItem("access_token")}`
-      }
-    });
-    const data = await res.json();
-    setTodos(data);
-  }
+    const searchParams = useSearchParams();
+    const code = searchParams.get("code");
+    const state = searchParams.get("state");
 
-  useEffect(() => {
-    if (!code) {
-      fetchTodos();
-      return;
+    const fetchTodos = useCallback(async () => {
+        const data = await apiFetchTodos();
+        if (data === null) {
+            // APIが失敗したら未ログイン扱いにする
+            setIsLoggedIn(false);
+            setTodos([]);
+            return;
+        }
+        setTodos(data);
+        setIsLoggedIn(true);
+    }, []);
+
+    useEffect(() => {
+        if (!code) {
+            // 通常表示: トークンがあればTodo一覧を取りに行く
+            if (localStorage.getItem("access_token")) {
+                fetchTodos();
+            }
+            return;
+        }
+        // Cognitoからのリダイレクト: 認可コードをトークンに交換してから一覧を取得する
+        async function login() {
+            const token = await exchangeCodeForToken(code!, state ?? "");
+            if (token !== null) {
+                await fetchTodos();
+            }
+            // URLのクエリパラメータを削除する
+            router.replace("/");
+        }
+        login();
+    }, [code, state, fetchTodos, router]);
+
+    async function toggleCompleted(todo: Todo) {
+        await updateTodo(todo.id, {
+            title: todo.title,
+            description: todo.description,
+            dueDate: todo.dueDate,
+            priority: todo.priority,
+            completed: !todo.completed,
+        });
+        fetchTodos();
     }
-    async function fetchToken(code: string) {
-      const resToken = await fetch("https://todo-fullstack-201302613838.auth.ap-northeast-1.amazoncognito.com/oauth2/token", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          client_id: "558ic139gocj8dbv2ba7b0rept",
-          code: code, // URLから取得したもの
-          redirect_uri: "http://localhost:3000",
-        }),
-      });
-      const dataToken = await resToken.json();
-      localStorage.setItem("access_token", dataToken.access_token);
-      fetchTodos();
-    }
-    fetchToken(code);
-    router.replace("/");
-  }, []);
 
-  return (
-    <div>
-      <LoginButton />
-      <TodoForm onTodoChanged={fetchTodos} />
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>
-            <div>
-              <UpdateForm todo={todo} onTodoChanged={fetchTodos} />
-              <DeleteButton id={todo.id} onTodoChanged={fetchTodos} />
+    return (
+        <main className="mx-auto flex max-w-xl flex-col gap-4 p-6">
+            <div className="flex items-center justify-between">
+                <h1 className="text-2xl font-bold">Todoアプリ</h1>
+                {isLoggedIn && <LogoutButton />}
             </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+
+            {!isLoggedIn && (
+                <div className="rounded-md border p-6 text-center">
+                    <p className="mb-4">ログインしてTodoを管理しましょう</p>
+                    <LoginButton />
+                </div>
+            )}
+
+            {isLoggedIn && (
+                <>
+                    <TodoForm onTodoChanged={fetchTodos} />
+                    <ul className="flex flex-col gap-2">
+                        {todos.map((todo) => (
+                            <li key={todo.id} className="rounded-md border p-3">
+                                <div className="flex items-start gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={todo.completed}
+                                        onChange={() => toggleCompleted(todo)}
+                                        aria-label="完了切り替え"
+                                        className="mt-1"
+                                    />
+                                    <div className="flex-1">
+                                        <p className={todo.completed ? "font-medium line-through text-gray-400" : "font-medium"}>
+                                            {todo.title}
+                                        </p>
+                                        {todo.description && <p className="text-sm text-gray-600">{todo.description}</p>}
+                                        <p className="mt-1 flex gap-3 text-xs text-gray-500">
+                                            {todo.dueDate && <span>期限: {todo.dueDate}</span>}
+                                            <span>優先度: {todo.priority}</span>
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <UpdateForm todo={todo} onTodoChanged={fetchTodos} />
+                                        <DeleteButton id={todo.id} onTodoChanged={fetchTodos} />
+                                    </div>
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
+        </main>
+    );
 }
