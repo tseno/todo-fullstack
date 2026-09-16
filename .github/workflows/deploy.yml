@@ -1,0 +1,97 @@
+name: Deploy
+
+# mainブランチへのpushで、Terraform適用 → バックエンド(ECS) → フロントエンド(S3+CloudFront) の順にデプロイする
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 同時デプロイを防ぐ
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDCでのAWS認証に必須
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # リポジトリ変数 AWS_DEPLOY_ROLE_ARN にTerraform outputの github_deploy_role_arn を設定しておくこと
+      - name: AWS認証（OIDC）
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.16.0
+
+      - name: Terraform apply
+        working-directory: infra
+        run: |
+          terraform init -input=false
+          terraform apply -auto-approve -input=false
+
+      - name: Terraform outputs を取得
+        id: tfout
+        working-directory: infra
+        run: |
+          echo "ecr=$(terraform output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+          echo "bucket=$(terraform output -raw frontend_bucket_name)" >> "$GITHUB_OUTPUT"
+          echo "cf_id=$(terraform output -raw cloudfront_distribution_id)" >> "$GITHUB_OUTPUT"
+          echo "cognito_domain=$(terraform output -raw hosted_ui_domain)" >> "$GITHUB_OUTPUT"
+          echo "cognito_client_id=$(terraform output -raw user_pool_client_id)" >> "$GITHUB_OUTPUT"
+          echo "cluster=$(terraform output -raw ecs_cluster_name)" >> "$GITHUB_OUTPUT"
+          echo "service=$(terraform output -raw ecs_service_name)" >> "$GITHUB_OUTPUT"
+
+      - name: ECRログイン
+        env:
+          ECR_URL: ${{ steps.tfout.outputs.ecr }}
+        run: aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin "${ECR_URL%%/*}"
+
+      # タスク定義がARM64（Graviton）のため、arm64イメージをビルドする
+      - uses: docker/setup-buildx-action@v3
+
+      - name: バックエンドイメージのビルド & push
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          platforms: linux/arm64
+          push: true
+          tags: ${{ steps.tfout.outputs.ecr }}:latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # NEXT_PUBLIC_API_BASE_URL は未設定のまま → 同一オリジン(/api)でバックエンドに繋がる
+      - name: フロントエンドビルド（Cognito設定を注入）
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_COGNITO_DOMAIN: ${{ steps.tfout.outputs.cognito_domain }}
+          NEXT_PUBLIC_COGNITO_CLIENT_ID: ${{ steps.tfout.outputs.cognito_client_id }}
+        run: |
+          npm ci
+          npm run build
+
+      - name: S3へアップロード
+        run: aws s3 sync frontend/out "s3://${{ steps.tfout.outputs.bucket }}" --delete
+
+      - name: CloudFrontキャッシュ無効化
+        run: aws cloudfront create-invalidation --distribution-id "${{ steps.tfout.outputs.cf_id }}" --paths "/*"
+
+      - name: ECSサービスを更新（最新イメージで再デプロイ）
+        run: aws ecs update-service --cluster "${{ steps.tfout.outputs.cluster }}" --service "${{ steps.tfout.outputs.service }}" --force-new-deployment
+
+      - name: ECSの安定を待つ
+        timeout-minutes: 30
+        run: aws ecs wait services-stable --cluster "${{ steps.tfout.outputs.cluster }}" --services "${{ steps.tfout.outputs.service }}"
