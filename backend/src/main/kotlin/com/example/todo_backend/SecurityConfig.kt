@@ -16,6 +16,8 @@ class SecurityConfig {
         http {
             authorizeHttpRequests {
                 authorize(HttpMethod.OPTIONS, "/**", permitAll)
+                // ヘルスチェック用。ALBからはJWTを付けられないため認証なしで許可する
+                authorize("/api/hello", permitAll)
                 authorize(anyRequest, authenticated)
             }
             oauth2ResourceServer { jwt { } }

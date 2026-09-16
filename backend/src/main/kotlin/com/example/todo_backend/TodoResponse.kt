@@ -9,7 +9,7 @@ data class TodoResponse(
     val title: String,
     val description: String?,
     val dueDate: LocalDate?,
-    val priority: String,
+    val priority: TodoPriority,
     val completed: Boolean,
 ) {
     constructor(todo: Todo) : this(
