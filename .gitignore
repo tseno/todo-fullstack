@@ -33,6 +33,9 @@ build/
 .vscode/
 !.vscode/extensions.json
 
+# --- AIアシスタント（Command Code）のセッションデータ ---
+.commandcode/
+
 # --- OS ---
 .DS_Store
 Thumbs.db
