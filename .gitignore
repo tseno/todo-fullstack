@@ -36,6 +36,9 @@ build/
 # --- AIアシスタント（Command Code）のセッションデータ ---
 .commandcode/
 
+# --- ブラウザ自動テスト（Playwright）の成果物 ---
+.playwright-mcp/
+
 # --- OS ---
 .DS_Store
 Thumbs.db

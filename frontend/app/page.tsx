@@ -61,6 +61,8 @@ function Home() {
         login();
     }, [code, state, fetchTodos, router]);
 
+    const [editingTodoId, setEditingTodoId] = useState<number | null>(null);
+
     async function toggleCompleted(todo: Todo) {
         await updateTodo(todo.id, {
             title: todo.title,
@@ -92,29 +94,43 @@ function Home() {
                     <ul className="flex flex-col gap-2">
                         {todos.map((todo) => (
                             <li key={todo.id} className="rounded-md border p-3">
-                                <div className="flex items-start gap-2">
-                                    <input
-                                        type="checkbox"
-                                        checked={todo.completed}
-                                        onChange={() => toggleCompleted(todo)}
-                                        aria-label="完了切り替え"
-                                        className="mt-1"
+                                {editingTodoId === todo.id ? (
+                                    <UpdateForm
+                                        todo={todo}
+                                        onSaved={() => { setEditingTodoId(null); fetchTodos(); }}
+                                        onCancel={() => setEditingTodoId(null)}
                                     />
-                                    <div className="flex-1">
-                                        <p className={todo.completed ? "font-medium line-through text-gray-400" : "font-medium"}>
-                                            {todo.title}
-                                        </p>
-                                        {todo.description && <p className="text-sm text-gray-600">{todo.description}</p>}
-                                        <p className="mt-1 flex gap-3 text-xs text-gray-500">
-                                            {todo.dueDate && <span>期限: {todo.dueDate}</span>}
-                                            <span>優先度: {todo.priority}</span>
-                                        </p>
+                                ) : (
+                                    <div className="flex items-start gap-2">
+                                        <input
+                                            type="checkbox"
+                                            checked={todo.completed}
+                                            onChange={() => toggleCompleted(todo)}
+                                            aria-label="完了切り替え"
+                                            className="mt-1"
+                                        />
+                                        <div className="flex-1">
+                                            <p className={todo.completed ? "font-medium line-through text-gray-400" : "font-medium"}>
+                                                {todo.title}
+                                            </p>
+                                            {todo.description && <p className="text-sm text-gray-600">{todo.description}</p>}
+                                            <p className="mt-1 flex gap-3 text-xs text-gray-500">
+                                                {todo.dueDate && <span>期限: {todo.dueDate}</span>}
+                                                <span>優先度: {todo.priority}</span>
+                                            </p>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditingTodoId(todo.id)}
+                                                className="rounded border px-2 py-0.5 text-sm"
+                                            >
+                                                編集
+                                            </button>
+                                            <DeleteButton id={todo.id} onTodoChanged={fetchTodos} />
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col items-end gap-1">
-                                        <UpdateForm todo={todo} onTodoChanged={fetchTodos} />
-                                        <DeleteButton id={todo.id} onTodoChanged={fetchTodos} />
-                                    </div>
-                                </div>
+                                )}
                             </li>
                         ))}
                     </ul>
