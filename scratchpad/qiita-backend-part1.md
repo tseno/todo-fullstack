@@ -1,7 +1,9 @@
-# 【Spring Boot × Kotlin】Todoアプリのバックエンドをゼロから理解する（1/3）
+# [初学者向け] 【Spring Boot × Kotlin】Todoアプリのバックエンドをゼロから理解する（1/3）
 
 > この記事は、Todoリストアプリのバックエンド実装を初心者の視点で解説するシリーズの1つ目です。
-> フロントエンド・インフラについては次の記事で解説します。
+> 以降の記事でフロントエンドとインフラを解説します。
+
+**シリーズ記事**: **1/3 バックエンド編（この記事）** ｜ [2/3 フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728) ｜ [3/3 インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
 
 ## この記事でわかること
 
@@ -280,10 +282,12 @@ AWSのALB（Application Load Balancer）はヘルスチェック時に **JWTト�
 
 ```kotlin
 @Configuration
-class WebConfig : WebMvcConfigurer {
+class WebConfig(
+    @Value("\${app.cors.allowed-origins}") private val allowedOrigins: String,
+) : WebMvcConfigurer {
     override fun addCorsMappings(registry: CorsRegistry) {
         registry.addMapping("/api/**")
-            .allowedOrigins("http://localhost:3000")
+            .allowedOrigins(*allowedOrigins.split(",").map { it.trim() }.toTypedArray())
             .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
             .allowedHeaders("Content-Type", "Authorization")
             .allowCredentials(true)
@@ -291,6 +295,17 @@ class WebConfig : WebMvcConfigurer {
     }
 }
 ```
+
+許可するオリジンは**開発と本番で異なる**ため、環境変数から読み込んでいます。
+
+```yaml
+# application.yaml
+app:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000}
+```
+
+本番ではECSのタスク定義に `CORS_ALLOWED_ORIGINS` を渡してCloudFrontのURLを許可します。
 
 ### CORSとは
 
@@ -311,11 +326,27 @@ http://localhost:8080  ← バックエンド（オリジンB）
 
 | 設定 | 意味 |
 |---|---|
-| `allowedOrigins` | `localhost:3000` からのリクエストだけ通す |
+| `allowedOrigins` | 許可するオリジン。開発は `localhost:3000`、本番はCloudFrontのURL |
 | `allowedMethods` | GET/POST/PUT/DELETEのみ許可 |
 | `allowedHeaders` | Content-TypeとAuthorizationヘッダーのみ許可 |
 | `allowCredentials` | JWTなどの認証情報付きリクエストを許可 |
 | `maxAge` | ブラウザがプリフライトリクエストをキャッシュする時間（秒） |
+
+### つまずきポイント: 同一オリジンでも `Origin` ヘッダーは送られる
+
+ここは実際に本番でハマったポイントです。
+
+ブラウザは**同一オリジンのPOST/PUT/DELETEでも `Origin` ヘッダーを送ります**（GETでは送られません）。本番はCloudFrontから配信されるため、許可リストにCloudFrontのURLがないと次のようになります。
+
+```
+POST /api/todos（Origin: https://xxx.cloudfront.net）
+  → CORSチェックで弾かれて403
+  → 画面には「追加されない」としか見えない
+```
+
+**「ローカルでは動くのに本番で動かない」**という典型的なパターンです。CORSの許可リストには**本番のオリジンも必ず入れておきましょう**。
+
+> 補足: CloudFrontの `custom_error_response` で403を200に変換していると、エラーが「成功」に見えて原因調査が非常に難しくなります。詳しくはインフラ編（3/3）で解説しています。
 
 ---
 
@@ -356,13 +387,13 @@ TodoResponse に変換して返す
 - **Service**: ビジネスロジックを担当。ユーザー隔離を強制
 - **Controller**: HTTPリクエストを処理し、サービスに委譲
 - **SecurityConfig**: JWT認証を自動で処理。未ログインなら401を返す
-- **WebConfig**: CORS設定。フロントエンドからのリクエストを許可
+- **WebConfig**: CORS設定。許可するオリジンは環境変数で切り替える
 
 次の記事では、フロントエンド（Next.js）の実装を解説します。
 
 ---
 
 > **シリーズ記事**
-> - [1/3] Spring Boot × Kotlin バックエンド編（この記事）
-> - [2/3] Next.js フロントエンド編（近日公開）
-> - [3/3] Docker + AWS インフラ編（近日公開）
+> - [1/3] [Spring Boot × Kotlin バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011)（この記事）
+> - [2/3] [Next.js フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728)
+> - [3/3] [Terraform × AWS インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)

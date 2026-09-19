@@ -1,7 +1,9 @@
-# 【Next.js × TypeScript】Todoアプリのフロントエンドをゼロから理解する（2/3）
+# [初学者向け] 【Next.js × TypeScript】Todoアプリのフロントエンドをゼロから理解する（2/3）
 
 > この記事は、Todoリストアプリのフロントエンド実装を初心者の視点で解説するシリーズの2つ目です。
 > バックエンド編（1/3）を先に読むと理解がスムーズです。インフラについては次の記事で解説します。
+
+**シリーズ記事**: [1/3 バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011) ｜ **2/3 フロントエンド編（この記事）** ｜ [3/3 インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
 
 ## この記事でわかること
 
@@ -13,13 +15,15 @@
 
 ## 技術スタック
 
-| 技術 | 役割 |
-|---|---|
-| Next.js | Reactベースのフレームワーク（App Router） |
-| React | UIライブラリ |
-| TypeScript | 型付きJavaScript |
-| Tailwind CSS | スタイリング |
-| Amazon Cognito | ログイン画面とトークン発行 |
+
+| 技術             | 役割                           |
+| -------------- | ---------------------------- |
+| Next.js        | Reactベースのフレームワーク（App Router） |
+| React          | UIライブラリ                      |
+| TypeScript     | 型付きJavaScript                |
+| Tailwind CSS   | スタイリング                       |
+| Amazon Cognito | ログイン画面とトークン発行                |
+
 
 ## プロジェクト構成
 
@@ -129,12 +133,14 @@ function authHeaders(): HeadersInit {
 
 ### 4つの関数
 
-| 関数 | メソッド | エンドポイント | 用途 |
-|---|---|---|---|
-| `fetchTodos()` | GET | `/api/todos` | 一覧取得 |
-| `createTodo(input)` | POST | `/api/todos` | 作成 |
-| `updateTodo(id, input)` | PUT | `/api/todos/:id` | 更新 |
-| `deleteTodo(id)` | DELETE | `/api/todos/:id` | 削除 |
+
+| 関数                      | メソッド   | エンドポイント          | 用途   |
+| ----------------------- | ------ | ---------------- | ---- |
+| `fetchTodos()`          | GET    | `/api/todos`     | 一覧取得 |
+| `createTodo(input)`     | POST   | `/api/todos`     | 作成   |
+| `updateTodo(id, input)` | PUT    | `/api/todos/:id` | 更新   |
+| `deleteTodo(id)`        | DELETE | `/api/todos/:id` | 削除   |
+
 
 ```typescript
 export async function fetchTodos(): Promise<Todo[] | null> {
@@ -184,7 +190,7 @@ export default function Page() {
 
 `useSearchParams()` を使うため、`Suspense` で包む必要があります（静的エクスポートの制約）。
 
-### 状態は2つだけ
+### 中心となる状態は2つ
 
 ```tsx
 function Home() {
@@ -192,12 +198,14 @@ function Home() {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 ```
 
-| 状態 | 型 | 役割 |
-|---|---|---|
-| `todos` | `Todo[]` | 表示するTodoの一覧 |
-| `isLoggedIn` | `boolean` | ログイン済みかどうか |
 
-これだけです。Todoの件数、完了数、ソート順などはすべて `todos` から計算できます。
+| 状態           | 型         | 役割          |
+| ------------ | --------- | ----------- |
+| `todos`      | `Todo[]`  | 表示するTodoの一覧 |
+| `isLoggedIn` | `boolean` | ログイン済みかどうか  |
+
+
+この2つが中心です。Todoの件数、完了数、ソート順などはすべて `todos` から計算できます（これに加えて、編集中のTodoを管理する状態が1つあります →後述）。
 
 ### データ取得の関数と `useCallback`
 
@@ -261,10 +269,12 @@ useEffect(() => {
 
 この `useEffect` は2つの役割を兼ねています。
 
-| 状況 | 処理 |
-|---|---|
-| URLに `code` がない（通常表示） | トークンがあれば一覧を取得 |
+
+| 状況                              | 処理                         |
+| ------------------------------- | -------------------------- |
+| URLに `code` がない（通常表示）           | トークンがあれば一覧を取得              |
 | URLに `code` がある（Cognitoから戻ってきた） | トークン交換 → 一覧取得 → URLをきれいにする |
+
 
 ### 依存配列には「使った値」を全部書く
 
@@ -274,7 +284,7 @@ useEffect(() => {
 }, [code, state, fetchTodos, router]);
 ```
 
-effect は**作られた時点の値を閉じ込める（クロージャ）**ため、依存を書かないと古い値を使い続けてしまう可能性があります。これを **stale closure（古いクロージャ）** と呼びます。
+effect は**作られた時点の値を閉じ込める（クロージャ）** ため、依存を書かないと古い値を使い続けてしまう可能性があります。これを **stale closure（古いクロージャ）** と呼びます。
 
 今回 `fetchTodos` は `useCallback(..., [])` なので参照が変わらず、実質的な依存は `[code, state, router]` です。それでも書くことで、将来 `fetchTodos` に依存が増えたときに正しく動きます。
 
@@ -499,10 +509,12 @@ export async function exchangeCodeForToken(code: string, state: string): Promise
 
 ### トークンの保存先
 
-| 保存先 | 保存するもの | 理由 |
-|---|---|---|
-| `sessionStorage` | `code_verifier`, `oauth_state` | 認証フロー中の一時的な値 |
-| `localStorage` | `access_token` | ページ再読み込み後もログイン状態を保つ |
+
+| 保存先              | 保存するもの                         | 理由                  |
+| ---------------- | ------------------------------ | ------------------- |
+| `sessionStorage` | `code_verifier`, `oauth_state` | 認証フロー中の一時的な値        |
+| `localStorage`   | `access_token`                 | ページ再読み込み後もログイン状態を保つ |
+
 
 ### ログアウト（redirectToLogout）
 
@@ -533,12 +545,14 @@ CSSファイルにスタイルを書かず、**JSXにクラス名を直接書く
 </button>
 ```
 
-| クラス | 意味 |
-|---|---|
-| `rounded` | 角を丸くする |
-| `bg-blue-600` | 背景を青にする |
-| `px-3 py-1` | 左右に余白3、上下に余白1 |
-| `text-white` | 文字を白にする |
+
+| クラス           | 意味            |
+| ------------- | ------------- |
+| `rounded`     | 角を丸くする        |
+| `bg-blue-600` | 背景を青にする       |
+| `px-3 py-1`   | 左右に余白3、上下に余白1 |
+| `text-white`  | 文字を白にする       |
+
 
 CSSを別ファイルで管理する必要がなく、**コンポーネントを見れば見た目がわかる**のが特徴です。
 
@@ -593,20 +607,22 @@ onTodoChanged() が呼ばれる
 ## まとめ
 
 - **layout.tsx**: HTMLの外枠。サーバーコンポーネント
-- **page.tsx**: アプリの中心。状態は `todos` と `isLoggedIn` の2つだけ
+- **page.tsx**: アプリの中心。状態は最小限（`todos` / `isLoggedIn` / `editingTodoId`）
 - **todo.ts**: バックエンドのレスポンスに対応する型定義
 - **lib/api.ts**: `fetch` + `Bearer` トークンでAPIを呼ぶ層
-- **子コンポーネント**: 変更したら `onTodoChanged()` で親に通知するだけ
+- **子コンポーネント**: 変更したら親に通知するだけ（`onTodoChanged` / `onSaved` / `onCancel`）
 - **lib/cognito.ts**: PKCE を自前実装。`localStorage` にトークンを保存
 - **useCallback / useEffect**: 依存配列を正しく書かないと無限ループになる
 
 バックエンド編と合わせて読むと、**「画面 → HTTP → Spring Security → DB」** の全体像が見えてきます。
 
-次の記事では、Docker と AWS（Terraform）によるインフラ構成を解説します。
+次の記事では、Terraform と AWS によるインフラ構成を解説します。
 
 ---
 
 > **シリーズ記事**
-> - [1/3] Spring Boot × Kotlin バックエンド編
-> - [2/3] Next.js フロントエンド編（この記事）
-> - [3/3] Docker + AWS インフラ編（近日公開）
+>
+> - \[1/3\] [Spring Boot × Kotlin バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011)
+> - \[2/3\] [Next.js フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728)（この記事）
+> - \[3/3\] [Terraform × AWS インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
+
