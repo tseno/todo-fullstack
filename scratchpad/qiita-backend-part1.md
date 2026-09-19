@@ -1,4 +1,4 @@
-# [初学者向け] 【Spring Boot × Kotlin】Todoアプリのバックエンドをゼロから理解する（1/3）
+# 【Spring Boot × Kotlin】Todoアプリのバックエンドをゼロから理解する（1/3）
 
 > この記事は、Todoリストアプリのバックエンド実装を初心者の視点で解説するシリーズの1つ目です。
 > 以降の記事でフロントエンドとインフラを解説します。
@@ -15,14 +15,16 @@
 
 ## 技術スタック
 
-| 技術 | 役割 |
-|---|---|
-| Kotlin | プログラミング言語 |
-| Spring Boot | Webフレームワーク |
+
+| 技術              | 役割         |
+| --------------- | ---------- |
+| Kotlin          | プログラミング言語  |
+| Spring Boot     | Webフレームワーク |
 | Spring Data JPA | データベースアクセス |
-| PostgreSQL | データベース |
-| AWS Cognito | ユーザー認証 |
-| Gradle | ビルドツール |
+| PostgreSQL      | データベース     |
+| AWS Cognito     | ユーザー認証     |
+| Gradle          | ビルドツール     |
+
 
 ## プロジェクト構成
 
@@ -66,12 +68,14 @@ class Todo {
 
 ### アノテーションの意味
 
-| アノテーション | 意味 |
-|---|---|
-| `@Entity` | このクラスはDBテーブルに対応する |
-| `@Id` | プライマリキー（各行の一意な識別子） |
-| `@GeneratedValue` | DBが自動で番号を振る（1, 2, 3...） |
-| `@Enumerated(STRING)` | 列挙型をDBに文字列として保存する |
+
+| アノテーション               | 意味                      |
+| --------------------- | ----------------------- |
+| `@Entity`             | このクラスはDBテーブルに対応する       |
+| `@Id`                 | プライマリキー（各行の一意な識別子）      |
+| `@GeneratedValue`     | DBが自動で番号を振る（1, 2, 3...） |
+| `@Enumerated(STRING)` | 列挙型をDBに文字列として保存する       |
+
 
 ### `String?` の `?` とは
 
@@ -174,16 +178,18 @@ class TodoController(val todoService: TodoService) {
 
 ### アノテーションの意味
 
-| アノテーション | 意味 |
-|---|---|
-| `@RestController` | HTTPリクエストを受け取るコントローラー |
-| `@RequestMapping("/api")` | 全エンドポイントのプレフィックス |
-| `@GetMapping` | GETリクエスト（データ取得） |
-| `@PostMapping` | POSTリクエスト（データ作成） |
-| `@AuthenticationPrincipal` | JWTからユーザー情報を取得 |
-| `@Valid` | リクエストボディをバリデーション |
-| `@RequestBody` | JSONリクエストボディをオブジェクトに変換 |
-| `@PathVariable` | URLの `{id}` 部分を変数に受け取る |
+
+| アノテーション                    | 意味                     |
+| -------------------------- | ---------------------- |
+| `@RestController`          | HTTPリクエストを受け取るコントローラー  |
+| `@RequestMapping("/api")`  | 全エンドポイントのプレフィックス       |
+| `@GetMapping`              | GETリクエスト（データ取得）        |
+| `@PostMapping`             | POSTリクエスト（データ作成）       |
+| `@AuthenticationPrincipal` | JWTからユーザー情報を取得         |
+| `@Valid`                   | リクエストボディをバリデーション       |
+| `@RequestBody`             | JSONリクエストボディをオブジェクトに変換 |
+| `@PathVariable`            | URLの `{id}` 部分を変数に受け取る |
+
 
 ---
 
@@ -266,11 +272,13 @@ class SecurityConfig {
 
 ### 認可ルール
 
-| ルール | 意味 |
-|---|---|
-| `OPTIONS /** → permitAll` | CORSプリフライトリクエストを許可 |
-| `/api/hello → permitAll` | ヘルスチェック用（認証不要） |
-| `anyRequest → authenticated` | それ以外は全てログイン必須 |
+
+| ルール                          | 意味                 |
+| ---------------------------- | ------------------ |
+| `OPTIONS /** → permitAll`    | CORSプリフライトリクエストを許可 |
+| `/api/hello → permitAll`     | ヘルスチェック用（認証不要）     |
+| `anyRequest → authenticated` | それ以外は全てログイン必須      |
+
 
 ### `/api/hello` はなぜ認証不要なのか
 
@@ -324,13 +332,15 @@ http://localhost:8080  ← バックエンド（オリジンB）
 
 ### 設定の意味
 
-| 設定 | 意味 |
-|---|---|
-| `allowedOrigins` | 許可するオリジン。開発は `localhost:3000`、本番はCloudFrontのURL |
-| `allowedMethods` | GET/POST/PUT/DELETEのみ許可 |
-| `allowedHeaders` | Content-TypeとAuthorizationヘッダーのみ許可 |
-| `allowCredentials` | JWTなどの認証情報付きリクエストを許可 |
-| `maxAge` | ブラウザがプリフライトリクエストをキャッシュする時間（秒） |
+
+| 設定                 | 意味                                              |
+| ------------------ | ----------------------------------------------- |
+| `allowedOrigins`   | 許可するオリジン。開発は `localhost:3000`、本番はCloudFrontのURL |
+| `allowedMethods`   | GET/POST/PUT/DELETEのみ許可                         |
+| `allowedHeaders`   | Content-TypeとAuthorizationヘッダーのみ許可              |
+| `allowCredentials` | JWTなどの認証情報付きリクエストを許可                            |
+| `maxAge`           | ブラウザがプリフライトリクエストをキャッシュする時間（秒）                   |
+
 
 ### つまずきポイント: 同一オリジンでも `Origin` ヘッダーは送られる
 
@@ -344,7 +354,7 @@ POST /api/todos（Origin: https://xxx.cloudfront.net）
   → 画面には「追加されない」としか見えない
 ```
 
-**「ローカルでは動くのに本番で動かない」**という典型的なパターンです。CORSの許可リストには**本番のオリジンも必ず入れておきましょう**。
+**「ローカルでは動くのに本番で動かない」という典型的なパターンです。CORSの許可リストには本番のオリジンも必ず入れておきましょう**。
 
 > 補足: CloudFrontの `custom_error_response` で403を200に変換していると、エラーが「成功」に見えて原因調査が非常に難しくなります。詳しくはインフラ編（3/3）で解説しています。
 
@@ -394,6 +404,8 @@ TodoResponse に変換して返す
 ---
 
 > **シリーズ記事**
-> - [1/3] [Spring Boot × Kotlin バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011)（この記事）
-> - [2/3] [Next.js フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728)
-> - [3/3] [Terraform × AWS インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
+>
+> - \[1/3\] [Spring Boot × Kotlin バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011)（この記事）
+> - \[2/3\] [Next.js フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728)
+> - \[3/3\] [Terraform × AWS インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
+
