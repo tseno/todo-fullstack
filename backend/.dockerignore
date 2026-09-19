@@ -1,0 +1,5 @@
+# ビルドコンテキストから除外する（Dockerfileは必要なファイルだけをCOPYする）
+.gradle/
+.kotlin/
+build/
+.DS_Store

@@ -7,6 +7,9 @@
 resource "aws_s3_bucket" "frontend" {
   bucket = "${var.project_name}-frontend-${data.aws_caller_identity.current.account_id}"
 
+  # デプロイしたファイルが残っていても terraform destroy できるようにする
+  force_destroy = true
+
   tags = { Name = "${var.project_name}-frontend" }
 }
 
@@ -56,6 +59,25 @@ resource "aws_s3_bucket_policy" "frontend" {
   })
 }
 
+# SPAのフォールバック。拡張子のないパスを index.html に書き換える。
+# デフォルトビヘイビア（S3）にだけ紐づけるので、/api/* のエラーは加工されずそのまま返る
+resource "aws_cloudfront_function" "spa_fallback" {
+  name    = "${var.project_name}-spa-fallback"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+
+  code = <<-EOT
+    function handler(event) {
+      var uri = event.request.uri;
+      var lastSegment = uri.split('/').pop();
+      if (lastSegment.indexOf('.') === -1) {
+        event.request.uri = '/index.html';
+      }
+      return event.request;
+    }
+  EOT
+}
+
 resource "aws_cloudfront_distribution" "frontend" {
   enabled             = true
   comment             = "${var.project_name} frontend"
@@ -87,6 +109,12 @@ resource "aws_cloudfront_distribution" "frontend" {
 
     # AWS管理ポリシー: CachingOptimized（静的ファイルに最適なキャッシュ設定）
     cache_policy_id = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+
+    # 未知のパスは index.html を返す（フロントエンドのルーティング用）
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.spa_fallback.arn
+    }
   }
 
   # /api/* はキャッシュせず、Authorizationヘッダも含めてすべてALBへ転送する
@@ -100,24 +128,13 @@ resource "aws_cloudfront_distribution" "frontend" {
     # AWS管理ポリシー: CachingDisabled
     cache_policy_id = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
 
-    # AWS管理ポリシー: AllViewer（クエリ・ヘッダを全部オリジンへ転送する）
-    origin_request_policy_id = "2166552a-18a4-4e35-93ea-ab01fa6d8755"
+    # AWS管理ポリシー: Managed-AllViewer（クエリ・ヘッダを全部オリジンへ転送する）
+    origin_request_policy_id = "216adef6-5c7f-47e4-b989-5492eafa07d3"
   }
 
-  # SPAとして未知のパスでも index.html を返す
-  custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
-  }
-
-  custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
-    error_caching_min_ttl = 10
-  }
+  # 注意: ここに custom_error_response を置くと全ビヘイビア（/api/* を含む）に適用され、
+  # APIの403/404が「200 + index.html」に化けてエラーが見えなくなる。
+  # SPAのフォールバックは aws_cloudfront_function.spa_fallback でデフォルトビヘイビアだけに適用する
 
   restrictions {
     geo_restriction {

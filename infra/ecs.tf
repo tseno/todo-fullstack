@@ -6,7 +6,7 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "DISABLED"
+    value = "disabled"
   }
 }
 
@@ -114,6 +114,12 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "JAVA_TOOL_OPTIONS"
           value = "-XX:MaxRAMPercentage=75.0"
+        },
+        # CORS許可オリジン。本番のブラウザはCloudFrontから配信されるため、
+        # 同一オリジンのPOSTでもOriginヘッダーが付く。これを許可しないと403になる
+        {
+          name  = "CORS_ALLOWED_ORIGINS"
+          value = "http://localhost:3000,https://${aws_cloudfront_distribution.frontend.domain_name}"
         },
       ]
 

@@ -69,14 +69,28 @@ todo-fullstack/
 
 ## セットアップ（ローカル開発）
 
-### 1. PostgreSQLを起動
+### 一括起動（推奨）
+
+```bash
+cp .env.example .env
+cp frontend/.env.example frontend/.env.local   # Cognitoのドメイン等を設定
+cd frontend && npm install && cd ..
+./dev.sh
+```
+
+PostgreSQL・バックエンド（8080）・フロントエンド（3000）が全て起動します。
+`Ctrl+C` で全て停止し、Dockerコンテナも自動で落とします。
+
+### 手動起動
+
+#### 1. PostgreSQLを起動
 
 ```bash
 cp .env.example .env
 docker compose up -d
 ```
 
-### 2. バックエンドを起動
+#### 2. バックエンドを起動
 
 ```bash
 cd backend
@@ -87,7 +101,7 @@ cd backend
 DB接続情報は環境変数 `SPRING_DATASOURCE_URL` / `SPRING_DATASOURCE_USERNAME` /
 `SPRING_DATASOURCE_PASSWORD` で上書きできる（未設定ならlocalhostのPostgresに接続）。
 
-### 3. フロントエンドを起動
+#### 3. フロントエンドを起動
 
 ```bash
 cd frontend
@@ -101,9 +115,41 @@ npm run dev
 
 ## 本番デプロイ
 
-初回のみ以下を実施する（以降はmainへのpushだけで自動デプロイされる）。
+### スクリプトで一式デプロイ（推奨）
 
-### 1. state保存用のS3バケットを作成
+ローカルから一括でデプロイする場合:
+
+```bash
+./deploy.sh    # インフラ作成 → イメージpush → フロント配置 → ECS更新
+```
+
+内部では以下を順に実行している。
+
+1. state保存用のS3バケットを作成（bootstrap）
+2. stateをS3へ移行し、インフラを一式 `terraform apply`
+3. バックエンドイメージを `linux/arm64` でビルドしてECRへpush
+4. フロントエンドを静的エクスポートしてS3へ配置し、CloudFrontを無効化
+5. ECSサービスを更新して安定を待つ
+
+デプロイ先のURLは最後に表示される（`terraform output cloudfront_domain` でも確認できる）。
+
+**終わったら必ず削除する**（課金を止めるため）:
+
+```bash
+./destroy.sh   # フロント用S3を空にしてから terraform destroy
+```
+
+`destroy.sh` はCloudFrontの削除に15〜20分かかることがある。state用のS3バケットは残しても課金はほぼ0だが、
+消す場合は `cd infra/bootstrap && terraform destroy -auto-approve` を実行する。
+
+### コストの目安
+
+常時起動で月額45ドル前後（ALB・Fargate・RDSが課金対象、NAT Gatewayなしの低コスト構成）。
+デプロイして数日で削除する場合の実費は数ドル程度。**削除し忘れに注意**。
+
+### 手動でデプロイする場合
+
+#### 1. state保存用のS3バケットを作成
 
 ```bash
 cd infra/bootstrap
@@ -112,7 +158,7 @@ terraform apply
 cd ../..
 ```
 
-### 2. stateをS3へ移行してインフラを一式適用
+#### 2. stateをS3へ移行してインフラを一式適用
 
 ```bash
 cd infra
@@ -122,7 +168,7 @@ terraform apply                 # 内容を確認して yes
 
 適用が終わったら `terraform output` で各種URLが確認できる。
 
-### 3. GitHub Actions用のロールを設定
+#### 3. GitHub Actions用のロールを設定
 
 ```bash
 terraform output -raw github_deploy_role_arn
@@ -131,7 +177,7 @@ terraform output -raw github_deploy_role_arn
 表示されたARNを、GitHubリポジトリの **Settings → Secrets and variables → Actions →
 Variables** に `AWS_DEPLOY_ROLE_ARN` として登録する。
 
-### 4. デプロイ
+#### 4. GitHub Actions でデプロイ
 
 mainブランチへpushすると deploy ワークフローが走り、
 Terraform適用 → バックエンドイメージのpush(ECS) → フロントエンドのS3アップロード +

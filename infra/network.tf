@@ -79,7 +79,9 @@ resource "aws_route_table_association" "public_c" {
 }
 
 # CloudFrontがインターネット側から接続するときに使うIPレンジのプレフィックスリスト
-data "aws_prefix_list" "cloudfront" {
+# 注意: data.aws_prefix_list は DescribePrefixLists を使うためCloudFrontのリストを取得できない。
+# DescribeManagedPrefixLists を使う aws_ec2_managed_prefix_list を使う
+data "aws_ec2_managed_prefix_list" "cloudfront" {
   name = "com.amazonaws.global.cloudfront.origin-facing"
 }
 
@@ -93,7 +95,7 @@ resource "aws_security_group" "alb" {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
-    prefix_list_ids = [data.aws_prefix_list.cloudfront.id]
+    prefix_list_ids = [data.aws_ec2_managed_prefix_list.cloudfront.id]
   }
 
   egress {
