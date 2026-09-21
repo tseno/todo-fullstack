@@ -364,29 +364,7 @@ POST /api/todos（Origin: https://xxx.cloudfront.net）
 
 最後に、1つのリクエストがどう処理されるかをまとめます。
 
-```
-クライアント
-  ↓ POST /api/todos（JWT + JSON）
-  ↓
-WebConfig（CORSチェック） →  localhost:3000からのリクエストか？
-  ↓ OK
-SecurityFilterChain（認証） → JWTの署名は正しいか？有効期限は？
-  ↓ OK
-SecurityFilterChain（認可） → このエンドポイントにアクセスできるか？
-  ↓ OK
-TodoController
-  ↓ @Valid でバリデーション（titleが空なら400エラー）
-  ↓ jwt.userId() でユーザーIDを取得
-  ↓ todoRequest.toEntity() でDBエンティティに変換
-  ↓
-TodoService
-  ↓ todo.userId = userId でユーザーIDをセット
-  ↓
-TodoRepository
-  ↓ データベースに保存
-  ↓
-TodoResponse に変換して返す
-```
+![バックエンド：1リクエストの処理の流れ](https://raw.githubusercontent.com/tseno/todo-fullstack/main/docs/backend-request-flow.png)
 
 ---
 

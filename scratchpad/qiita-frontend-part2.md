@@ -49,6 +49,10 @@ frontend/
 
 ## 1. アプリ全体の構造
 
+![未ログイン時の画面](https://raw.githubusercontent.com/tseno/todo-fullstack/main/docs/app-not-logged-in.png)
+
+このアプリの画面はこれだけです。未ログインのときは「ログイン」ボタンだけが表示され、クリックするとCognitoのHosted UIへリダイレクトします。
+
 ### layout.tsx（ルートレイアウト）
 
 すべてのページを包む「外枠」です。HTMLの `<html>` と `<body>` を定義します。
@@ -427,12 +431,7 @@ Cognito Hosted UI を使った **OAuth2 認可コードフロー + PKCE** を自
 
 **Proof Key for Code Exchange** の略で、公開クライアント（SPAなど、秘密鍵を安全に保てないアプリ）のための認可コード保護の仕組みです。
 
-```
-① ランダムな code_verifier を作る
-② それをハッシュ化して code_challenge を作る
-③ code_challenge を Cognito に送ってログイン
-④ 戻ってきた code を、code_verifier と一緒にトークンと交換
-```
+![PKCEログインフロー](https://raw.githubusercontent.com/tseno/todo-fullstack/main/docs/frontend-pkce-flow.png)
 
 仮に `code` を盗まれても、`code_verifier` がなければトークンに交換できない、という仕組みです。
 
@@ -511,9 +510,17 @@ export async function exchangeCodeForToken(code: string, state: string): Promise
 
 
 | 保存先              | 保存するもの                         | 理由                  |
-| ---------------- | ------------------------------ | ------------------- |
+| ---------------- | -------------------------------- | ------------------- |
 | `sessionStorage` | `code_verifier`, `oauth_state` | 認証フロー中の一時的な値        |
 | `localStorage`   | `access_token`                 | ページ再読み込み後もログイン状態を保つ |
+
+
+**使い分けの基準は「その値をいつまで残すべきか」** です。
+
+- **`sessionStorage`（一時的）**: タブを閉じると消える。`code_verifier` や `state` はログインの1回の流れでしか使わない値なので、これが最適。**読んだ時点で削除する**ことで、二重実行や再利用も防いでいる
+- **`localStorage`（永続的）**: タブを開いている間ずっと残る。ページを再読み込みしてもログイン状態を維持したい `access_token` の保存先として使う
+
+「認証が終わったら消えてほしい値」は `sessionStorage`、「ログイン状態として保持したい値」は `localStorage` に入れる、と覚えると分かりやすいです。
 
 
 ### ログアウト（redirectToLogout）
@@ -570,23 +577,7 @@ CSSを別ファイルで管理する必要がなく、**コンポーネントを
 
 最後に、Todoを1つ追加したときの流れをまとめます。
 
-```
-ユーザーがフォームに入力して「追加」をクリック
-  ↓
-TodoForm.handleSubmit()
-  ↓ createTodo(input)   ← lib/api.ts
-  ↓ fetch("POST /api/todos", { Authorization: Bearer <token> })
-  ↓
-バックエンドで認証・保存
-  ↓
-onTodoChanged() が呼ばれる
-  ↓
-親の fetchTodos() が実行される
-  ↓ GET /api/todos
-  ↓ setTodos(data)
-  ↓
-画面が再レンダリングされて一覧が更新される
-```
+![データの流れ（Todo追加の場合）](https://raw.githubusercontent.com/tseno/todo-fullstack/main/docs/frontend-data-flow.png)
 
 ### 変更のたびに全件を取り直す
 
