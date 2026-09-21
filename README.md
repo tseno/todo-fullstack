@@ -14,6 +14,14 @@ Kotlin + Spring Boot + Next.js + AWS で構築する、学習用のフルスタ�
 ユーザー管理を自前で実装するのではなく Amazon Cognito（マネージドサービス）に任せることで、
 認証まわりの実装コストとセキュリティリスクを下げています。
 
+## Qiita記事
+
+構築の手順とつまずきポイントをシリーズ記事としてまとめています。
+
+- [1/3 Spring Boot × Kotlin バックエンド編](https://qiita.com/tseno/items/d2df1bdf15788d3b7011)
+- [2/3 Next.js フロントエンド編](https://qiita.com/tseno/items/ec943d5312e8c5936728)
+- [3/3 Terraform × AWS インフラ編](https://qiita.com/tseno/items/4621aee6401f2ebe0d51)
+
 ## アーキテクチャ
 
 ### ローカル開発
