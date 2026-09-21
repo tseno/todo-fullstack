@@ -28,14 +28,11 @@ Browser → Next.js (localhost:3000)
 
 ### 本番（AWS）
 
-```
-Browser → CloudFront (https://xxx.cloudfront.net)
-              ├─ /*       → S3（Next.jsの静的エクスポート）
-              └─ /api/*   → ALB → ECS Fargate（Kotlin/Spring Boot, ARM64）
-                                      ↓
-                                  RDS PostgreSQL（プライベートサブネット）
-認証: Cognito Hosted UI（認可コードフロー + PKCE）
-```
+![本番アーキテクチャ](docs/aws-architecture.png)
+
+- ブラウザから見える入口はCloudFrontだけ。`/*` はS3のNext.js静的エクスポート、
+  `/api/*` はALB経由でECS Fargate（Kotlin/Spring Boot）へ転送される
+- 認証はCognito Hosted UI（認可コードフロー + PKCE）
 
 - 低コスト構成: NAT Gatewayなし（ECSタスクはパブリックサブネット+パブリックIP）、
   RDSは db.t4g.micro シングルAZ、Fargate 0.5vCPU/1GB タスク1台。月額概算 $40 前後。

@@ -60,15 +60,10 @@ resource "aws_db_instance" "main" {
 
 ## 全体構成（本番）
 
-```
-ブラウザ
-  ↓ https://xxx.cloudfront.net
-CloudFront（HTTPS終端・CDN）
-  ├─ /*      → S3（Next.jsの静的ファイル）
-  └─ /api/*  → ALB → ECS Fargate（Spring Boot）→ RDS（PostgreSQL）
+<!-- ※ Qiitaの編集画面に docs/aws-architecture.png をドラッグ＆ドロップでアップロードし、
+     下の画像URLをアップロード後のものに差し替えてください -->
 
-認証: Cognito Hosted UI（認可コードフロー + PKCE）
-```
+![本番アーキテクチャ（AWS / 低コスト構成）](docs/aws-architecture.png)
 
 ポイントは **「ブラウザから見える入口はCloudFrontだけ」** ということです。フロントもAPIも同じオリジンになるため、本番ではCORSが不要になります。
 

@@ -35,6 +35,7 @@ build/
 
 # --- AIアシスタント（Command Code）のセッションデータ ---
 .commandcode/
+scratchpad/
 
 # --- ブラウザ自動テスト（Playwright）の成果物 ---
 .playwright-mcp/
