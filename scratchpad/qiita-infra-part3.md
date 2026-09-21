@@ -60,10 +60,7 @@ resource "aws_db_instance" "main" {
 
 ## 全体構成（本番）
 
-<!-- ※ Qiitaの編集画面に docs/aws-architecture.png をドラッグ＆ドロップでアップロードし、
-     下の画像URLをアップロード後のものに差し替えてください -->
-
-![本番アーキテクチャ（AWS / 低コスト構成）](docs/aws-architecture.png)
+![本番アーキテクチャ（AWS / 低コスト構成）](https://raw.githubusercontent.com/tseno/todo-fullstack/main/docs/aws-architecture.png)
 
 ポイントは **「ブラウザから見える入口はCloudFrontだけ」** ということです。フロントもAPIも同じオリジンになるため、本番ではCORSが不要になります。
 
